@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: employeeapp
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: employeeapp
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: employeeapp
+    spec:
+      containers:
+        - name: employeeapp
+          image: ankitkapadiaa/employee-service:latest
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "100m"
+            limits:
+              memory: "1024Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8088
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 20
+            failureThreshold: 3
+            successThreshold: 1
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8088
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 20
+            failureThreshold: 3
+            successThreshold: 1
+          env:
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: employee-config-map
+                  key: employee-database-host
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: employee-config-map
+                  key: employee-database-port
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: employee-config-map
+                  key: employee-database-name
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysecret
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysecret
+                  key: postgres-password
+          ports:
+            - containerPort: 8088
+              name: employeeapp
+          restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: employee-lb
+  namespace: default
+spec:
+  selector:
+    app: employeeapp
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8088
+      name: employeeapp

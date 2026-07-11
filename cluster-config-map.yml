@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: employee-config-map
+  namespace: default
+data:
+  employee-database-name: employee_db
+  employee-database-port: "5432"
+  employee-database-host: mypostgres-0.mypostgres

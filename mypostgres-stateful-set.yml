@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mypostgres-pv
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  hostPath:
+    path: "/home/ankitkapadia/postgres/data"
+    type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mypostgres-pvc
+  namespace: default
+spec:
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mypostgres
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: mypostgres
+  serviceName: mypostgres
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mypostgres
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: mypostgres
+          image: postgres:14
+          ports:
+            - containerPort: 5432
+              name: mypostgres
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysecret
+                  key: postgres-password
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: employee-config-map
+                  key: employee-database-name
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysecret
+                  key: postgres-user
+          volumeMounts:
+            - name: mypostgres-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: mypostgres-storage
+          persistentVolumeClaim:
+            claimName: mypostgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mypostgres
+  namespace: default
+spec:
+  selector:
+    app: mypostgres
+  clusterIP: None
+  sessionAffinity: None
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  ports:
+    - port: 5432
+      name: mypostgres
+      protocol: TCP
