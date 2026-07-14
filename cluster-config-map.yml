@@ -1,9 +1,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: employee-config-map
+  name: cluster-config-map
   namespace: default
 data:
   employee-database-name: employee_db
-  employee-database-port: "5432"
-  employee-database-host: mypostgres-0.mypostgres
+  department-database-name: department_db
+  cluster-database-port: "5432"
+  cluster-database-host: mypostgres-0.mypostgres
+  department-service-host: http://department-svc

@@ -1,21 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: employeeapp
+  name: departmentapp
   namespace: default
 spec:
   selector:
     matchLabels:
-      app: employeeapp
+      app: departmentapp
   replicas: 1
   template:
     metadata:
       labels:
-        app: employeeapp
+        app: departmentapp
     spec:
       containers:
-        - name: employeeapp
-          image: ankitkapadiaa/employee-service:latest
+        - name: departmentapp
+          image: ankitkapadiaa/department-service:latest
+          # imagePullPolicy: Never
           resources:
             requests:
               memory: "512Mi"
@@ -26,7 +27,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /actuator/health
-              port: 8088
+              port: 8090
             initialDelaySeconds: 20
             periodSeconds: 20
             timeoutSeconds: 20
@@ -35,7 +36,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /actuator/health
-              port: 8088
+              port: 8090
             initialDelaySeconds: 20
             periodSeconds: 20
             timeoutSeconds: 20
@@ -56,12 +57,7 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: cluster-config-map
-                  key: employee-database-name
-            - name: DEPARTMENT_SERVICE_HOST_URL
-              valueFrom:
-                configMapKeyRef:
-                  name: cluster-config-map
-                  key: department-service-host
+                  key: department-database-name
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -73,20 +69,35 @@ spec:
                   name: mysecret
                   key: postgres-password
           ports:
-            - containerPort: 8088
-              name: employeeapp
+            - containerPort: 8090
+              name: departmentapp
           restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: employee-lb
+  name: department-lb
   namespace: default
 spec:
   selector:
-    app: employeeapp
+    app: departmentapp
   type: LoadBalancer
   ports:
     - port: 80
-      targetPort: 8088
-      name: employeeapp
+      targetPort: 8090
+      name: departmentapp
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: department-svc
+  namespace: default
+spec:
+  selector:
+    app: departmentapp
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8090
+      name: departmentapp
